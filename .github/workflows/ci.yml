@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Use Node.js 20
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install Root Dependencies
+      run: npm ci || npm install
+      
+    - name: Ensure Root Build (Frontend)
+      run: npm run build
+      
+    - name: Type Check Root
+      run: npx tsc --noEmit
+      
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: npm ci || npm install
+      
+    - name: Generate Prisma Client
+      working-directory: ./backend
+      run: npx prisma generate
+      
+    - name: Type Check Backend
+      working-directory: ./backend
+      run: npx tsc --noEmit
+      
+    - name: Run Backend Tests
+      working-directory: ./backend
+      run: npm test
