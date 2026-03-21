@@ -1,0 +1,9 @@
+{
+  "name": "IndieForge",
+  "description": "A premium game distribution platform for indie developers and gamers, featuring high-fidelity animations and custom themes.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}

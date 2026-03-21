@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+:root {
+  --accent: #10b981;
+  --accent-rgb: 16, 185, 129;
+}
+
+body {
+  @apply bg-neutral-50 text-neutral-900 font-sans antialiased transition-all duration-300;
+  background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
+}
+
+.dark body {
+  @apply bg-neutral-950 text-neutral-50;
+  background: radial-gradient(circle at 50% -20%, #1a0b2e 0%, #030014 100%);
+  background-attachment: fixed;
+}
+
+@utility glass {
+  @apply bg-white/70 dark:bg-[#0f0c29]/50 backdrop-blur-xl border border-white/20 dark:border-white/10;
+}
+
+@utility glass-card {
+  @apply glass rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-[var(--accent)]/20 transition-all duration-500 hover:border-white/30 dark:hover:border-[var(--accent)]/50;
+}
+
+@utility btn-accent {
+  background-color: var(--accent);
+  @apply text-white font-bold py-2 px-4 rounded-xl transition-all hover:opacity-90 active:scale-95 shadow-lg shadow-[var(--accent)]/20;
+}
+
+@utility text-accent {
+  color: var(--accent);
+}
+
+@utility border-accent {
+  border-color: var(--accent);
+}
+
+@utility bg-accent {
+  background-color: var(--accent);
+}
+
+@utility bg-accent-soft {
+  background-color: color-mix(in srgb, var(--accent), transparent 90%);
+}

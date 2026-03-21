@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id       String  @id @default(uuid())
+  username String  @unique
+  email    String  @unique
+  role     String  @default("GAMER")
+  games    Game[]
+}
+
+model Game {
+  id          String  @id @default(uuid())
+  title       String
+  description String
+  category    String
+  version     String
+  developerId String
+  developer   User    @relation(fields: [developerId], references: [id])
+  assets      Asset?
+}
+
+model Asset {
+  id            String  @id @default(uuid())
+  gameId        String  @unique
+  game          Game    @relation(fields: [gameId], references: [id])
+  coverImageUrl String
+  trailerUrl    String?
+  fileUrl       String?
+}
