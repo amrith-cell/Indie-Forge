@@ -8,6 +8,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Root route so the Render link doesn't show "Cannot GET /"
+app.get('/', (req, res) => {
+  res.json({ message: 'IndieForge API is alive and running!' });
+});
+
 // Create a test developer if none exists for the mock uploads
 async function ensureMockDeveloper() {
   let dev = await prisma.user.findFirst({
