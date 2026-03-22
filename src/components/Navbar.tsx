@@ -22,7 +22,7 @@ export default function Navbar({ theme, setTheme, view, setView, onOpenAuth }: N
           <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent/20">
             <Gamepad2 size={24} />
           </div>
-          <span className="font-display font-bold text-xl tracking-tight">IndieForge</span>
+          <span className="font-display font-bold text-xl tracking-tight">IndieForge <span className="text-accent text-xs align-top font-black ml-1 uppercase border border-accent rounded-sm px-1">Preview Build</span></span>
         </div>
 
         <div className="flex items-center gap-6">
