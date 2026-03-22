@@ -24,6 +24,9 @@ export default function GameDetails({ gameId, onBack }: GameDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { user } = useAuth();
+  
+  const [isOwned, setIsOwned] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     if (!gameId) return;
@@ -46,6 +49,51 @@ export default function GameDetails({ gameId, onBack }: GameDetailsProps) {
 
     fetchGame();
   }, [gameId]);
+
+  useEffect(() => {
+    if (!user || !gameId) return;
+    const fetchOwnership = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/api/library/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const library = await res.json();
+          const owned = library.some((item: any) => item.game.id === gameId);
+          setIsOwned(owned);
+        }
+      } catch (e) {
+        console.error('Failed to check ownership', e);
+      }
+    };
+    fetchOwnership();
+  }, [user, gameId]);
+
+  const handleAddToLibrary = async () => {
+    if (!user || !gameId) return;
+    setIsAdding(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/library/add`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ gameId })
+      });
+      if (res.ok) {
+        setIsOwned(true);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -122,15 +170,42 @@ export default function GameDetails({ gameId, onBack }: GameDetailsProps) {
         {/* Right Column: Actions & Details */}
         <div className="space-y-6">
           <div className="glass-card p-6 bg-accent/5 border-accent/20">
-            <a 
-              href={game.fileUrl !== '#' ? game.fileUrl : undefined}
-              className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-semibold text-lg transition-all ${
-                game.fileUrl !== '#' ? 'bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent/90 hover:scale-[1.02]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-              }`}
-            >
-              <Download size={24} />
-              {game.fileUrl !== '#' ? 'Download Now' : 'Not Available'}
-            </a>
+            {isOwned ? (
+              <a 
+                href={game.fileUrl !== '#' ? game.fileUrl : undefined}
+                className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-semibold text-lg transition-all ${
+                  game.fileUrl !== '#' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 hover:bg-emerald-400 hover:scale-[1.02]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                }`}
+              >
+                <Download size={24} />
+                {game.fileUrl !== '#' ? 'Download Now' : 'Not Available'}
+              </a>
+            ) : user ? (
+              <button 
+                onClick={handleAddToLibrary}
+                disabled={isAdding}
+                className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 font-semibold text-lg transition-all ${
+                  isAdding ? 'bg-accent/50 cursor-wait' : 'bg-accent text-white shadow-lg shadow-accent/30 hover:bg-accent/90 hover:scale-[1.02]'
+                }`}
+              >
+                {isAdding ? (
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Download size={24} />
+                    Add to Library
+                  </>
+                )}
+              </button>
+            ) : (
+              <button 
+                disabled
+                className="w-full py-4 rounded-xl flex items-center justify-center gap-3 font-semibold text-lg bg-neutral-800 text-neutral-500 cursor-not-allowed"
+              >
+                <Download size={24} />
+                Login to Purchase
+              </button>
+            )}
             
             <p className="text-center text-sm text-neutral-400 mt-4 flex items-center justify-center gap-2">
               <ShieldCheck size={16} className="text-emerald-400" />

@@ -2,39 +2,49 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Play, Download, Clock, Search } from 'lucide-react';
 
-const ownedGames = [
-  {
-    id: 1,
-    title: "Neon Nights",
-    coverUrl: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80",
-    playTime: "42.5 hrs",
-    lastPlayed: "2 days ago",
-    status: "installed",
-  },
-  {
-    id: 2,
-    title: "Stardust Odyssey",
-    coverUrl: "https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?w=800&q=80",
-    playTime: "128.0 hrs",
-    lastPlayed: "Today",
-    status: "installed",
-  },
-  {
-    id: 3,
-    title: "Cyber Strike: Retribution",
-    coverUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
-    playTime: "0 hrs",
-    lastPlayed: "Never",
-    status: "not_installed",
-  }
-];
-
 export default function Library() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [ownedGames, setOwnedGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredGames = ownedGames.filter(game =>
-    game.title.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    const fetchLibrary = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || '';
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const res = await fetch(`${API_URL}/api/library/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setOwnedGames(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch library', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLibrary();
+  }, []);
+
+  const filteredGames = ownedGames.filter(own =>
+    own.game.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="pt-28 min-h-screen flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="pt-28 pb-20 px-6 max-w-7xl mx-auto min-h-screen">
@@ -58,9 +68,9 @@ export default function Library() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode="popLayout">
-          {filteredGames.map((game, index) => (
+          {filteredGames.map((own, index) => (
             <motion.div
-              key={game.id}
+              key={own.ownershipId}
               layout
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -70,33 +80,32 @@ export default function Library() {
             >
               <div className="aspect-video relative overflow-hidden">
                 <img
-                  src={game.coverUrl}
-                  alt={game.title}
+                  src={own.game.coverUrl || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&q=80'}
+                  alt={own.game.title}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/20 to-transparent"></div>
                 
-                {game.status === 'installed' ? (
-                  <button className="absolute bottom-4 right-4 bg-accent text-white p-3 rounded-full hover:bg-emerald-400 transition-colors shadow-lg shadow-accent/50 transform hover:scale-110 active:scale-95">
-                    <Play fill="currentColor" size={24} />
-                  </button>
-                ) : (
-                  <button className="absolute bottom-4 right-4 bg-white/20 backdrop-blur-md text-white p-3 rounded-full hover:bg-white/30 transition-colors border border-white/30 transform hover:scale-110 active:scale-95">
-                    <Download size={24} />
-                  </button>
-                )}
+                <a 
+                  href={own.game.fileUrl !== '#' ? own.game.fileUrl : undefined}
+                  className={`absolute bottom-4 right-4 text-white p-3 rounded-full transition-colors shadow-lg transform hover:scale-110 active:scale-95 ${
+                    own.game.fileUrl !== '#' ? 'bg-accent shadow-accent/50 hover:bg-emerald-400' : 'bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 text-neutral-400'
+                  }`}
+                >
+                  {own.game.fileUrl !== '#' ? <Play fill="currentColor" size={24} /> : <Download size={24} />}
+                </a>
               </div>
               
               <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                  <h3 className="font-display font-bold text-lg mb-1">{game.title}</h3>
+                  <h3 className="font-display font-bold text-lg mb-1">{own.game.title}</h3>
                   <div className="flex items-center gap-4 text-xs font-medium text-neutral-500 dark:text-neutral-400">
                     <span className="flex items-center gap-1">
                       <Clock size={14} />
-                      {game.playTime}
+                      {own.playtimeHours} hrs
                     </span>
-                    <span>Last played: {game.lastPlayed}</span>
+                    <span>Acquired: {new Date(own.acquiredAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
@@ -111,7 +120,9 @@ export default function Library() {
             <Search className="text-neutral-400" size={40} />
           </div>
           <h3 className="text-xl font-bold mb-2">No games found</h3>
-          <p className="text-neutral-500 max-w-sm">We couldn't find any games in your library matching "{searchQuery}".</p>
+          <p className="text-neutral-500 max-w-sm">
+            {ownedGames.length === 0 ? "You haven't added any games to your library yet. Go find some in the Store!" : `We couldn't find any games matching "${searchQuery}".`}
+          </p>
         </div>
       )}
     </div>

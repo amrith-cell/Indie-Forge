@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
 import authRouter from './routes/auth';
+import libraryRouter from './routes/library';
 import { requireAuth, AuthRequest } from './middleware/auth';
 
 const prisma = new PrismaClient();
@@ -11,6 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRouter);
+app.use('/api/library', libraryRouter);
 
 // Root route so the Render link doesn't show "Cannot GET /"
 app.get('/', (req, res) => {

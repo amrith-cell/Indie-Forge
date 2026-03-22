@@ -8,23 +8,25 @@ datasource db {
 }
 
 model User {
-  id       String  @id @default(uuid())
-  username String  @unique
-  email    String  @unique
-  password String?
-  role     String  @default("GAMER")
-  games    Game[]
+  id         String          @id @default(uuid())
+  username   String          @unique
+  email      String          @unique
+  password   String?
+  role       String          @default("GAMER")
+  games      Game[]
+  ownedGames GameOwnership[]
 }
 
 model Game {
-  id          String  @id @default(uuid())
+  id          String          @id @default(uuid())
   title       String
   description String
   category    String
   version     String
   developerId String
-  developer   User    @relation(fields: [developerId], references: [id])
+  developer   User            @relation(fields: [developerId], references: [id])
   assets      Asset?
+  owners      GameOwnership[]
 }
 
 model Asset {
@@ -34,4 +36,16 @@ model Asset {
   coverImageUrl String
   trailerUrl    String?
   fileUrl       String?
+}
+
+model GameOwnership {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  gameId        String
+  game          Game     @relation(fields: [gameId], references: [id])
+  playtimeHours Int      @default(0)
+  acquiredAt    DateTime @default(now())
+
+  @@unique([userId, gameId])
 }
