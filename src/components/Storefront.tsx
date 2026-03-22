@@ -28,7 +28,11 @@ const featuredGames = [
   }
 ];
 
-export default function Storefront() {
+interface StorefrontProps {
+  onGameSelect: (id: string) => void;
+}
+
+export default function Storefront({ onGameSelect }: StorefrontProps) {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeGenre, setActiveGenre] = useState('All');
@@ -45,20 +49,27 @@ export default function Storefront() {
   }, []);
 
   useEffect(() => {
-    const API_URL = import.meta.env.VITE_API_URL || '';
-    fetch(`${API_URL}/api/games`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchFilteredGames = async () => {
+      setLoading(true);
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (activeGenre !== 'All') params.append('category', activeGenre);
+      
+      try {
+        const res = await fetch(`${API_URL}/api/games?${params.toString()}`);
+        const data = await res.json();
         setGames(data);
+      } catch (err) {
+        console.error('Failed to fetch games:', err);
+      } finally {
         setLoading(false);
-      });
-  }, []);
+      }
+    };
 
-  const filteredGames = games.filter(game => {
-    const matchesGenre = activeGenre === 'All' || game.genre === activeGenre;
-    const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesGenre && matchesSearch;
-  });
+    const debounce = setTimeout(fetchFilteredGames, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery, activeGenre]);
 
   return (
     <div className="pt-28 pb-20 px-6 max-w-7xl mx-auto">
@@ -154,13 +165,15 @@ export default function Storefront() {
       {/* Game Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         <AnimatePresence mode="popLayout">
-          {filteredGames.map((game, index) => (
-            <GameCard key={game.id} game={game} />
+          {games.map((game, index) => (
+            <div key={game.id} onClick={() => onGameSelect(game.id)} className="cursor-pointer">
+              <GameCard game={game} />
+            </div>
           ))}
         </AnimatePresence>
       </div>
 
-      {filteredGames.length === 0 && !loading && (
+      {games.length === 0 && !loading && (
         <div className="text-center py-20">
           <p className="text-neutral-500 text-lg">No games found matching your criteria.</p>
         </div>

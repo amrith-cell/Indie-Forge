@@ -1,12 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
+import authRouter from './routes/auth';
+import { requireAuth, AuthRequest } from './middleware/auth';
 
 const prisma = new PrismaClient();
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/auth', authRouter);
 
 // Root route so the Render link doesn't show "Cannot GET /"
 app.get('/', (req, res) => {
@@ -32,7 +36,20 @@ async function ensureMockDeveloper() {
 
 app.get('/api/games', async (req, res) => {
   try {
+    const { search, category } = req.query;
+    
+    const whereClause: any = {};
+    if (category && category !== 'All') {
+      whereClause.category = String(category);
+    }
+    if (search) {
+      whereClause.title = {
+        contains: String(search)
+      };
+    }
+
     const games = await prisma.game.findMany({
+      where: whereClause,
       include: {
         assets: true,
         developer: true
@@ -55,11 +72,48 @@ app.get('/api/games', async (req, res) => {
   }
 });
 
-app.post('/api/games/upload', async (req, res) => {
+app.get('/api/games/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const game = await prisma.game.findUnique({
+      where: { id },
+      include: {
+        assets: true,
+        developer: true
+      }
+    });
+
+    if (!game) {
+      res.status(404).json({ error: 'Game not found' });
+      return;
+    }
+
+    const formattedGame = {
+      id: game.id,
+      title: game.title,
+      description: game.description,
+      genre: game.category,
+      coverUrl: game.assets?.coverImageUrl || '',
+      trailerUrl: game.assets?.trailerUrl || '',
+      fileUrl: game.assets?.fileUrl || '',
+      developerName: game.developer?.username || 'Unknown Developer',
+    };
+    
+    res.json(formattedGame);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
+app.post('/api/games/upload', requireAuth, async (req: AuthRequest, res: express.Response): Promise<void> => {
   const { title, missionBrief, classification, buildVersion } = req.body;
   
   try {
-    const dev = await ensureMockDeveloper();
+    const developerId = req.user?.userId;
+    if (!developerId) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
 
     const newGame = await prisma.game.create({
       data: {
@@ -67,7 +121,7 @@ app.post('/api/games/upload', async (req, res) => {
         description: missionBrief || '',
         category: classification || 'Action',
         version: buildVersion || '1.0.0',
-        developerId: dev.id,
+        developerId: developerId,
         assets: {
           create: {
             coverImageUrl: `https://picsum.photos/seed/${Math.random().toString(36).substring(7)}/800/450`,

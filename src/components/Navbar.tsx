@@ -1,18 +1,20 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Gamepad2, User, Moon, Sun, LayoutDashboard, ShoppingBag, HelpCircle, Settings as SettingsIcon, Library as LibraryIcon } from 'lucide-react';
+import { ShoppingBag, LayoutDashboard, Menu, X, Gamepad2, Sun, Moon, Library as LibraryIcon, HelpCircle, Settings as SettingsIcon, User, LogOut } from 'lucide-react';
 import { Theme } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NavbarProps {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  role: 'gamer' | 'developer';
-  setRole: (role: 'gamer' | 'developer') => void;
-  view: 'store' | 'dashboard' | 'support' | 'settings' | 'library';
-  setView: (view: 'store' | 'dashboard' | 'support' | 'settings' | 'library') => void;
+  view: 'store' | 'dashboard' | 'support' | 'settings' | 'library' | 'game';
+  setView: (view: 'store' | 'dashboard' | 'support' | 'settings' | 'library' | 'game') => void;
+  onOpenAuth: () => void;
 }
 
-export default function Navbar({ theme, setTheme, role, setRole, view, setView }: NavbarProps) {
+export default function Navbar({ theme, setTheme, view, setView, onOpenAuth }: NavbarProps) {
+  const { user, logout } = useAuth();
+  const role = user?.role?.toLowerCase() || 'gamer';
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto glass rounded-2xl px-6 py-3 flex items-center justify-between shadow-sm">
@@ -108,13 +110,28 @@ export default function Navbar({ theme, setTheme, role, setRole, view, setView }
               </AnimatePresence>
             </button>
             
-            <button
-              onClick={() => setRole(role === 'gamer' ? 'developer' : 'gamer')}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold hover:scale-105 transition-transform"
-            >
-              <User size={16} />
-              {role === 'gamer' ? 'Gamer' : 'Dev'}
-            </button>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold hidden sm:block mr-2 text-neutral-500">
+                  {user.username}
+                </span>
+                <button
+                  onClick={logout}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 text-sm font-semibold hover:scale-105 transition-transform"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuth}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-white text-sm font-semibold hover:scale-105 transition-transform shadow-lg shadow-accent/20"
+              >
+                <User size={16} />
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </div>

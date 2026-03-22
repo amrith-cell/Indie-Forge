@@ -7,22 +7,28 @@ import Support from './components/Support';
 import Settings from './components/Settings';
 import Library from './components/Library';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
+import AuthModal from './components/AuthModal';
+
+import GameDetails from './components/GameDetails';
 
 function AppContent() {
   const { theme, setTheme } = useTheme();
-  const [role, setRole] = useState<'gamer' | 'developer'>('gamer');
-  const [view, setView] = useState<'store' | 'dashboard' | 'support' | 'settings' | 'library'>('store');
+  const [view, setView] = useState<'store' | 'dashboard' | 'support' | 'settings' | 'library' | 'game'>('store');
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
 
   return (
     <div className="min-h-screen text-neutral-900 dark:text-neutral-50 selection:bg-(--accent)/30">
       <Navbar 
         theme={theme} 
         setTheme={setTheme} 
-        role={role} 
-        setRole={setRole}
-        view={view}
-        setView={setView}
+        view={view as any}
+        setView={setView as any}
+        onOpenAuth={() => setIsAuthOpen(true)}
       />
+
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
       <main>
         <AnimatePresence mode="wait">
@@ -34,7 +40,20 @@ function AppContent() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Storefront />
+              <Storefront onGameSelect={(id: string) => { setSelectedGameId(id); setView('game'); }} />
+            </motion.div>
+          ) : view === 'game' ? (
+            <motion.div
+              key="game"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <GameDetails 
+                gameId={selectedGameId} 
+                onBack={() => { setView('store'); setSelectedGameId(null); }} 
+              />
             </motion.div>
           ) : view === 'dashboard' ? (
             <motion.div
@@ -104,7 +123,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }
