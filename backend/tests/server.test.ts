@@ -9,19 +9,18 @@ describe('Backend API', () => {
     expect(Array.isArray(res.body)).toBeTruthy();
   });
 
-  it('POST /api/games/upload should create a game (mock)', async () => {
+  it('POST /api/games/upload should return 401 without auth token', async () => {
     const newGame = {
       title: 'Jest Example Game',
-      missionBrief: 'Testing CI pipeline',
+      missionBrief: 'Testing CI pipeline constraints',
       classification: 'Action',
       buildVersion: '1.0.0'
     };
     
-    // We send a POST request but don't strictly assert deep database integration
-    // in order to avoid polluting the dev DB in standard runs, but we verify the endpoint behaves.
+    // We expect the new requireAuth middleware to intercept this and throw a 401
+    // since we do not have a valid JWT Bearer assigned to the supertest request.
     const res = await request(app).post('/api/games/upload').send(newGame);
-    expect(res.statusCode).toEqual(201);
-    expect(res.body).toHaveProperty('id');
-    expect(res.body.title).toEqual(newGame.title);
+    expect(res.statusCode).toEqual(401);
+    expect(res.body).toHaveProperty('error');
   });
 });
