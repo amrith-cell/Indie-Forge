@@ -76,7 +76,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res: Response): Promise<
     });
 
     // Format for the frontend Library
-    const formattedLibrary = ownerships.map(own => ({
+    const formattedLibrary = ownerships.map((own: any) => ({
       ownershipId: own.id,
       playtimeHours: own.playtimeHours,
       acquiredAt: own.acquiredAt,

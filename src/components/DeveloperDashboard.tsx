@@ -1,219 +1,179 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Upload, Plus, FileText, Image as ImageIcon, CheckCircle2, AlertCircle, TrendingUp, Users, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LayoutGrid, Plus, Rocket, BarChart3, Settings, Trash2, Edit2, Search } from 'lucide-react';
+import UploadGameModal from './UploadGameModal';
 
-export default function DeveloperDashboard({ setView }: { setView?: (v: string) => void }) {
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [publishSuccess, setPublishSuccess] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    missionBrief: '',
-    classification: 'Action',
-    buildVersion: '1.0.0'
-  });
+interface Game {
+  id: string;
+  title: string;
+  genre: string;
+  coverUrl: string;
+  views?: number;
+  downloads?: number;
+}
 
-  const handlePublish = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsPublishing(true);
-    
+interface DeveloperDashboardProps {
+  setView: (view: 'store' | 'dashboard' | 'support' | 'settings' | 'library' | 'game') => void;
+}
+
+const DeveloperDashboard: React.FC<DeveloperDashboardProps> = ({ setView }) => {
+  const [games, setGames] = useState<Game[]>([]);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDeveloperGames();
+  }, []);
+
+  const fetchDeveloperGames = async () => {
+    setIsLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const response = await fetch(`${API_URL}/api/games/upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+      const token = localStorage.getItem('token');
+      // For now, we fetch all games and filter locally to show the concept
+      // In a real app, this would be GET /api/developer/games
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/games`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      if (response.ok || response.status === 201) {
-        setPublishSuccess(true);
-        setTimeout(() => {
-          if (setView) setView('store');
-        }, 2000);
-      } else {
-        console.error("Upload failed with status:", response.status);
-      }
+      const data = await response.json();
+      setGames(data); // In demo, showing all as "yours" or filtering
     } catch (error) {
-      console.error("Network error during upload:", error);
+      console.error('Error fetching games:', error);
     } finally {
-      setIsPublishing(false);
+      setIsLoading(false);
     }
   };
 
+  const stats = [
+    { label: 'Total Players', value: '12.4k', icon: Rocket, color: 'text-blue-400' },
+    { label: 'Avg. Playtime', value: '45m', icon: BarChart3, color: 'text-purple-400' },
+    { label: 'Live Games', value: games.length.toString(), icon: LayoutGrid, color: 'text-emerald-400' }
+  ];
+
+  const filteredGames = games.filter(g => 
+    g.title.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="pt-28 pb-20 px-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-10">
-        <div>
-          <h1 className="text-4xl font-display font-black mb-2">Developer Hub</h1>
-          <p className="text-neutral-500">Manage your creations and reach thousands of gamers.</p>
+    <div className="min-h-screen bg-[#0a0a0c] pt-24 pb-12 px-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl font-bold text-white mb-2"
+            >
+              Developer <span className="text-blue-500">Forge</span>
+            </motion.h1>
+            <p className="text-gray-400">Manage your creations and track performance.</p>
+          </div>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20"
+          >
+            <Plus size={20} />
+            Publish New Game
+          </motion.button>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-xs font-bold uppercase text-neutral-400">Total Downloads</p>
-            <p className="text-2xl font-display font-bold">12.4k</p>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-            <Plus size={24} />
-          </div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-6 border-l-4 border-l-accent">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
-              <CreditCard size={20} />
-            </div>
-            <span className="text-sm font-bold text-accent bg-accent/10 px-2 py-1 rounded-full">+14.2%</span>
-          </div>
-          <p className="text-neutral-500 text-sm font-bold mb-1">Total Revenue</p>
-          <h3 className="text-3xl font-display font-black">$42,890.50</h3>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 border-l-4 border-l-blue-500">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-              <Users size={20} />
-            </div>
-            <span className="text-sm font-bold text-blue-500 bg-blue-500/10 px-2 py-1 rounded-full">+8.1%</span>
-          </div>
-          <p className="text-neutral-500 text-sm font-bold mb-1">Active Players (30d)</p>
-          <h3 className="text-3xl font-display font-black">15,234</h3>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6 border-l-4 border-l-purple-500">
-          <div className="flex justify-between items-start mb-4">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
-              <TrendingUp size={20} />
-            </div>
-            <span className="text-sm font-bold text-purple-500 bg-purple-500/10 px-2 py-1 rounded-full">+22.4%</span>
-          </div>
-          <p className="text-neutral-500 text-sm font-bold mb-1">Store Conversion</p>
-          <h3 className="text-3xl font-display font-black">4.8%</h3>
-        </motion.div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          {publishSuccess ? (
-            <div className="bg-black border-2 border-green-500 font-mono text-green-500 p-8 rounded-none flex flex-col items-center justify-center h-full min-h-[400px]">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center"
-              >
-                <div className="text-6xl mb-6">✔</div>
-                <h2 className="text-2xl font-bold tracking-widest mb-2 animate-pulse">UPLOAD COMPLETE.</h2>
-                <p className="text-green-500/70 tracking-widest">TERMINAL DISCONNECTING...</p>
-              </motion.div>
-            </div>
-          ) : (
-            <form onSubmit={handlePublish} className="bg-black border border-green-500/30 p-8 rounded-none space-y-6 font-mono text-green-500 shadow-[0_0_15px_rgba(34,197,94,0.1)] relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-green-500 to-transparent opacity-50"></div>
-              
-              <div className="flex items-center gap-2 mb-6 border-b border-green-500/30 pb-4">
-                <div className="w-3 h-3 bg-green-500 animate-pulse"></div>
-                <h2 className="text-xl tracking-widest font-bold">SYSTEM UPLOAD TERMINAL // STEP 1</h2>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {stats.map((stat, idx) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className="bg-zinc-900/50 border border-white/5 p-6 rounded-2xl backdrop-blur-sm shadow-xl"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <stat.icon className={`${stat.color}`} size={24} />
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{stat.label}</span>
               </div>
+              <div className="text-3xl font-bold text-white">{stat.value}</div>
+            </motion.div>
+          ))}
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold tracking-widest text-green-500/70">GAME TITLE</label>
-                  <input
-                    required
-                    type="text"
-                    value={formData.title}
-                    onChange={e => setFormData({...formData, title: e.target.value})}
-                    className="w-full px-4 py-3 bg-black border border-green-500/50 text-green-400 focus:border-green-400 focus:shadow-[0_0_10px_rgba(34,197,94,0.3)] outline-none transition-all placeholder:text-green-900"
-                    placeholder="ENTER DESIGNATION..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold tracking-widest text-green-500/70">CLASSIFICATION</label>
-                  <select
-                    value={formData.classification}
-                    onChange={e => setFormData({...formData, classification: e.target.value})}
-                    className="w-full px-4 py-3 bg-black border border-green-500/50 text-green-400 focus:border-green-400 focus:shadow-[0_0_10px_rgba(34,197,94,0.3)] outline-none transition-all appearance-none"
+        {/* Main Content Area */}
+        <div className="bg-zinc-900/30 border border-white/5 rounded-3xl p-8 backdrop-blur-md">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <h2 className="text-xl font-semibold text-white">Your Games</h2>
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-blue-400 transition-colors" size={18} />
+              <input 
+                type="text"
+                placeholder="Search your library..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-2 text-white focus:outline-none focus:border-blue-500/50 transition-all w-full md:w-64"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="py-20 flex justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500"></div>
+              </div>
+            ) : filteredGames.length === 0 ? (
+              <div className="py-20 text-center border-2 border-dashed border-white/5 rounded-2xl">
+                <p className="text-gray-500">No games found matches your search.</p>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {filteredGames.map((game) => (
+                  <motion.div
+                    key={game.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex flex-col md:flex-row items-center gap-6 p-4 bg-zinc-900/40 hover:bg-zinc-800/40 border border-white/5 rounded-2xl transition-all group"
                   >
-                    <option>Action</option>
-                    <option>Open-World</option>
-                    <option>RPG</option>
-                    <option>Strategy</option>
-                    <option>Indie</option>
-                  </select>
-                </div>
-              </div>
+                    <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
+                      <img src={game.coverUrl} alt={game.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    </div>
+                    
+                    <div className="flex-grow text-center md:text-left">
+                      <h3 className="text-lg font-bold text-white mb-1">{game.title}</h3>
+                      <div className="flex items-center justify-center md:justify-start gap-3">
+                        <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">{game.genre}</span>
+                        <span className="text-xs text-gray-500">v1.2.0</span>
+                      </div>
+                    </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-widest text-green-500/70">MISSION BRIEF</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={formData.missionBrief}
-                  onChange={e => setFormData({...formData, missionBrief: e.target.value})}
-                  className="w-full px-4 py-3 bg-black border border-green-500/50 text-green-400 focus:border-green-400 focus:shadow-[0_0_10px_rgba(34,197,94,0.3)] outline-none resize-none transition-all placeholder:text-green-900"
-                  placeholder="INPUT SCENARIO PARAMETERS..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold tracking-widest text-green-500/70">BUILD VERSION</label>
-                <input
-                  required
-                  type="text"
-                  value={formData.buildVersion}
-                  onChange={e => setFormData({...formData, buildVersion: e.target.value})}
-                  className="w-full px-4 py-3 bg-black border border-green-500/50 text-green-400 focus:border-green-400 focus:shadow-[0_0_10px_rgba(34,197,94,0.3)] outline-none transition-all"
-                  placeholder="1.0.0"
-                />
-              </div>
-
-              <button
-                disabled={isPublishing}
-                type="submit"
-                className={`w-full py-4 mt-8 font-black text-lg tracking-widest transition-all uppercase border ${
-                  isPublishing 
-                  ? 'bg-transparent border-green-500/50 text-green-500/50 cursor-not-allowed animate-pulse' 
-                  : 'bg-green-500/10 border-green-500 text-green-400 hover:bg-green-500 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'
-                }`}
-              >
-                {isPublishing ? 'TRANSMITTING PAYLOAD...' : 'Execute Publish'}
-              </button>
-            </form>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="glass p-6 rounded-3xl">
-            <h3 className="font-display font-bold text-lg mb-4 flex items-center gap-2">
-              <CheckCircle2 size={20} className="text-accent" />
-              Publishing Checklist
-            </h3>
-            <ul className="space-y-3">
-              {[
-                'High-quality cover art (16:9)',
-                'Gameplay trailer (under 50MB)',
-                'Clear system requirements',
-                'Release notes for v1.0.0'
-              ].map((item, i) => (
-                <li key={i} className="flex items-center gap-3 text-sm text-neutral-600 dark:text-neutral-400">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="glass p-6 rounded-3xl">
-            <h3 className="font-display font-bold text-lg mb-4 flex items-center gap-2">
-              <AlertCircle size={20} className="text-amber-500" />
-              Developer Tips
-            </h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">
-              Games with autoplaying trailers on hover see 40% higher engagement. Make sure your first 5 seconds are captivating!
-            </p>
+                    <div className="flex items-center gap-3">
+                      <button className="p-3 bg-zinc-800 hover:bg-zinc-700 text-gray-300 rounded-xl transition-colors" title="Settings">
+                        <Settings size={18} />
+                      </button>
+                      <button className="p-3 bg-zinc-800 hover:bg-zinc-700 text-blue-400 rounded-xl transition-colors" title="Edit">
+                        <Edit2 size={18} />
+                      </button>
+                      <button className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-colors" title="Delete">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>
+
+      <UploadGameModal 
+        isOpen={isUploadModalOpen} 
+        onClose={() => setIsUploadModalOpen(false)} 
+        onSuccess={fetchDeveloperGames}
+      />
     </div>
   );
-}
+};
+
+export default DeveloperDashboard;
